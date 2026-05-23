@@ -1,5 +1,5 @@
 {den, ...}: {
-  den.aspects.virshle.vm = {
+  den.aspects.virshle = {
     nixos = {...}: {
       imports = [./default.nix];
     };

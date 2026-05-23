@@ -40,6 +40,9 @@
     flake-parts.lib.mkFlake {
       inherit inputs;
     } {
+      imports = [
+        inputs.flake-parts.flakeModules.flakeModules
+      ];
       flake = rec {
         flakeModules = {
           vm = ./modules/images/default-flake-module.nix;
