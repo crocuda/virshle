@@ -71,7 +71,7 @@ commands = ["""
 ##########################################
 # Production - to Crocuda main server
 [[pipelines]]
-name = "deploy-cro-1"
+name = "deploy"
 [[pipelines.triggers]]
 actions = ["manual"]
 [[pipelines.steps]]
@@ -97,5 +97,35 @@ commands = [
   """,
   """
     rsync --progress -azv ./public/ cro-1:/var/www/virshle.crocuda.com
+  """,
+]
+
+[[pipelines]]
+name = "deploy-tor"
+[[pipelines.triggers]]
+actions = ["manual"]
+[[pipelines.steps]]
+name = "build website"
+commands = [
+  # install deps
+  "pipelight run install --attach --flag blank",
+  # build resources
+  "pipelight run gen_css --attach --flag blank",
+  "pipelight run gen_html --attach --flag blank",
+  "pipelight run gen_js --attach --flag blank",
+  "pipelight run gen_md --attach --flag blank",
+  # build bundle
+  "zola build --base-url http://qxi4zmjeazhup53x7t6zbnl2gbbrcazalx7hu2rbxy2rhtlsjv2j6sid.onion",
+]
+[[pipelines.steps]]
+options.mode = "continue"
+name = "copy files to remote"
+commands = [
+  # Ensure destination exists
+  """
+    ssh cro-1 -C "mkdir -p /var/www/tor.virshle.crocuda.com"
+  """,
+  """
+    rsync --progress -azv ./public/ cro-1:/var/www/tor.virshle.crocuda.com
   """,
 ]

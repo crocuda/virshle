@@ -2,12 +2,12 @@
   inputs,
   lib,
   pkgs,
-  modulesPath,
+  # modulesPath,
   ...
 }: {
   # for virtio kernel drivers
   imports = [
-    (modulesPath + "/profiles/qemu-guest.nix")
+    # (modulesPath + "/profiles/qemu-guest.nix")
     inputs.pipelight.nixosModules.pipelight-init
     inputs.disko.nixosModules.disko
   ];

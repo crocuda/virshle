@@ -1,8 +1,4 @@
-{
-  lib,
-  pkgs,
-  ...
-}: {
+{lib, ...}: {
   ##########################
   ## Lix
   # nix.package = pkgs.lixPackageSets.stable.lix;
