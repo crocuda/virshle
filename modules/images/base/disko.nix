@@ -4,7 +4,7 @@
   ...
 }: {
   imports = [
-    inputs.disko.nixosModules.disko
+    # inputs.disko.nixosModules.disko
   ];
 
   systemd.tmpfiles.rules = [
@@ -13,6 +13,7 @@
   ];
 
   disko.memSize = 6 * 1024;
+
   disko.imageBuilder = lib.mkForce {
     imageFormat = "raw";
     copyNixStore = true;
@@ -49,23 +50,41 @@
                   # Disable zstd compression for CPU friendly I/O.
                   "root" = {
                     mountpoint = "/";
-                    mountOptions = ["subvol=root"];
+                    mountOptions = [
+                      "subvol=root"
+                      # "compress=zstd"
+                    ];
                   };
                   "home" = {
                     mountpoint = "/home";
-                    mountOptions = ["subvol=home"];
+                    mountOptions = [
+                      "subvol=home"
+                      # "compress=zstd"
+                    ];
                   };
                   "nix" = {
                     mountpoint = "/nix";
-                    mountOptions = ["subvol=nix" "noatime"];
+                    mountOptions = [
+                      "subvol=nix"
+                      "noatime"
+                      # "compress=zstd"
+                    ];
                   };
                   "persist" = {
                     mountpoint = "/persist";
-                    mountOptions = ["subvol=persist" "noatime"];
+                    mountOptions = [
+                      "subvol=persist"
+                      "noatime"
+                      # "compress=zstd"
+                    ];
                   };
                   "log" = {
                     mountpoint = "/var/log";
-                    mountOptions = ["subvol=log" "noatime"];
+                    mountOptions = [
+                      "subvol=log"
+                      "noatime"
+                      # "compress=zstd"
+                    ];
                   };
                 };
               };

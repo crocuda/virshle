@@ -5,11 +5,10 @@
   modulesPath,
   ...
 }: {
-  # for virtio kernel drivers
   imports = [
-    (modulesPath + "/profiles/qemu-guest.nix")
-    inputs.pipelight.nixosModules.pipelight-init
-    inputs.disko.nixosModules.disko
+    # for virtio kernel drivers
+    # (modulesPath + "/profiles/qemu-guest.nix")
+    # inputs.pipelight.nixosModules.pipelight-init
   ];
 
   ###################################
@@ -45,7 +44,7 @@
   systemd.tmpfiles.rules = [
     "Z '/pipelight-init' 774 root users - -"
   ];
-  services.pipelight-init.enable = true;
+  # services.pipelight-init.enable = true;
 
   fileSystems."/pipelight-init" = {
     device = "/dev/disk/by-label/INIT";
