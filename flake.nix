@@ -5,7 +5,8 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     rust-overlay.url = "github:oxalica/rust-overlay";
     flake-utils.url = "github:numtide/flake-utils";
-    # flake-parts.url = "github:hercules-ci/flake-parts";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    den.url = "github:denful/den";
     disko = {
       url = "github:nix-community/disko/latest";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -22,7 +23,7 @@
     nixpkgs,
     rust-overlay,
     flake-utils,
-    # flake-parts,
+    flake-parts,
     disko,
     ...
   } @ inputs: let
@@ -36,12 +37,19 @@
       inherit virshle_lib;
     };
   in
-    {
-      nixosModules = rec {
-        default = virshle;
-        virshle = ./modules/default.nix;
-        vm = ./modules/images/default.nix;
-        vm-test = ./modules/images/test.nix;
+    flake-parts.lib.mkFlake {
+      inherit inputs;
+    } {
+      flake = rec {
+        flakeModules = {
+          vm = ./modules/images/default-flake-module.nix;
+        };
+        nixosModules = rec {
+          default = virshle;
+          virshle = ./modules/default.nix;
+          vm = ./modules/images/default.nix;
+          vm-test = ./modules/images/test.nix;
+        };
       };
     }
     // flake-utils.lib.eachDefaultSystem (system: let
