@@ -5,12 +5,6 @@
   modulesPath,
   ...
 }: {
-  imports = [
-    # for virtio kernel drivers
-    # (modulesPath + "/profiles/qemu-guest.nix")
-    # inputs.pipelight.nixosModules.pipelight-init
-  ];
-
   ###################################
   ## Console output
   # Expose guest VM tty to host through virsh
