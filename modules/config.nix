@@ -3,6 +3,7 @@
   config,
   inputs,
   pkgs,
+  # system,
   ...
 }:
 with lib; let
@@ -10,7 +11,8 @@ with lib; let
 
   cfg = config.services.${moduleName};
 
-  package = inputs.virshle.packages.${pkgs.system}.default;
+  system = pkgs.stdenv.hostPlatform.system;
+  package = inputs.virshle.packages.${system}.default;
 
   virshleProxyCommand = pkgs.writeShellScriptBin "virshleProxyCommand" ''
     h=$1 #hostname
