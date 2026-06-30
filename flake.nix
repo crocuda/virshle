@@ -17,5 +17,6 @@
     import-tree.url = "github:denful/import-tree";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
     pipelight.url = "github:pipelight/pipelight";
+    rust-overlay.url = "github:oxalica/rust-overlay";
   };
 }

@@ -16,9 +16,9 @@
       inherit system;
       overlays = [inputs.rust-overlay.overlays.default];
     };
-    package.default = pkgs.rustPlatform.buildRustPackage rec {
+    packages.default = pkgs.rustPlatform.buildRustPackage rec {
       pname = "virshle";
-      version = (builtins.fromTOML (lib.readFile ./${pname}/Cargo.toml)).package.version;
+      version = (builtins.fromTOML (lib.readFile ../${pname}/Cargo.toml)).package.version;
       src = ../.;
       cargoLock = {
         lockFile = ../Cargo.lock;
@@ -48,7 +48,7 @@
         openssl
         pkg-config
 
-        (rust-bin.fromRustupToolchainFile ./rust-toolchain.toml)
+        (rust-bin.fromRustupToolchainFile ../rust-toolchain.toml)
       ];
 
       LIBCLANG_PATH = lib.makeLibraryPath [pkgs.llvmPackages.libclang.lib];

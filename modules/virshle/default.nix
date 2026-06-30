@@ -1,7 +1,69 @@
-{self, ...}: {
+{
+  self,
+  den,
+  ...
+}: {
   flake.flakeModules = rec {
     default = virshle;
     "virshle" = {
+      includes = [den.policies.to-host];
+      policies.to-host = {user, ...}: {
+        nixos = {pkgs, ...}: let
+          inherit (pkgs.stdenv.hostPlatform) system;
+          package = self.packages.${system}.default;
+        in {
+          ## Working dir
+          # Set working directories in your own configuration,
+          # outside of this module.
+          #
+          # Example:
+          #
+          # ```nix
+          # systemd.tmpfiles.rules = let
+          #   group = "users"; # "wheel" | "root"
+          # in
+          #   lib.mkDefault [
+          #     "Z '/var/lib/virshle' 2774 ${cfg.user} ${group} - -"
+          #     "d '/var/lib/virshle' 2774 ${cfg.user} ${group} - -"
+          #     "Z '/var/lib/virshle/cache' 2774 ${cfg.user} ${group} - -"
+          #     "d '/var/lib/virshle/cache' 2774 ${cfg.user} ${group} - -"
+          #   ];
+          # ```
+
+          # Set user as a sudoer.
+          # Virshle needs it to mount and unmount storage devices.
+          security.sudo.extraRules = [
+            {
+              users = [user];
+              commands = [
+                {
+                  command = "/run/wrappers/bin/mount";
+                  options = ["NOPASSWD"];
+                }
+                {
+                  command = "/run/wrappers/bin/umount";
+                  options = ["NOPASSWD"];
+                }
+              ];
+            }
+          ];
+          # Give the binary some capabilities.
+          # Virshle needs it to create network devices.
+          security.wrappers.virshle = {
+            source = "${package}/bin/virshle";
+            owner = user;
+            group = "root";
+            # setuid = true;
+            # setgid = true;
+
+            ## DO NOT WORK: Add mounting capabilities.
+            ## But can't work unless rust native mounting lib. (sys_mount crate is only FFI bindings)
+            # capabilities = "cap_net_admin,cap_sys_admin+eip";
+            capabilities = "cap_net_admin+eip";
+            permissions = "u+rx,g+rx,o+rx";
+          };
+        };
+      };
       nixos = {...}: {
         imports = [
           self.nixosModules.virshle
@@ -29,7 +91,7 @@
         # Use kea-dhcp to provide network connectivity to VMs.
         dhcp = {
           # Create a default configuration for kea-dhcp.
-          defaultConfig = mkEnableOption "Enable kea dhcp with custom configuration for ${moduleName}.";
+          defaultConfig = mkEnableOption "Enable kea dhcp with custom configuration for virshle.";
         };
 
         # Virshle runs better as root.
@@ -58,59 +120,7 @@
           fn
         '';
       in
-        mkIf config.services."virshle".enable
-        {
-          ## Working dir
-          # Set working directories in your own configuration,
-          # outside of this module.
-          #
-          # Example:
-          #
-          # ```nix
-          # systemd.tmpfiles.rules = let
-          #   group = "users"; # "wheel" | "root"
-          # in
-          #   lib.mkDefault [
-          #     "Z '/var/lib/virshle' 2774 ${cfg.user} ${group} - -"
-          #     "d '/var/lib/virshle' 2774 ${cfg.user} ${group} - -"
-          #     "Z '/var/lib/virshle/cache' 2774 ${cfg.user} ${group} - -"
-          #     "d '/var/lib/virshle/cache' 2774 ${cfg.user} ${group} - -"
-          #   ];
-          # ```
-
-          # Set user as a sudoer.
-          # Virshle needs it to mount and unmount storage devices.
-          security.sudo.extraRules = [
-            {
-              users = [cfg.user];
-              commands = [
-                {
-                  command = "/run/wrappers/bin/mount";
-                  options = ["NOPASSWD"];
-                }
-                {
-                  command = "/run/wrappers/bin/umount";
-                  options = ["NOPASSWD"];
-                }
-              ];
-            }
-          ];
-          # Give the binary some capabilities.
-          # Virshle needs it to create network devices.
-          security.wrappers.virshle = {
-            source = "${package}/bin/virshle";
-            owner = cfg.user;
-            group = "root";
-            # setuid = true;
-            # setgid = true;
-
-            ## DO NOT WORK: Add mounting capabilities.
-            ## But can't work unless rust native mounting lib. (sys_mount crate is only FFI bindings)
-            # capabilities = "cap_net_admin,cap_sys_admin+eip";
-            capabilities = "cap_net_admin+eip";
-            permissions = "u+rx,g+rx,o+rx";
-          };
-
+        mkIf config.services."virshle".enable {
           ## Systemd unit file
           # Auto restart VM on network setup.
           #
@@ -139,7 +149,7 @@
                   "debug" = "-vvv";
                   "trace" = "-vvvv";
                 }.${
-                  cfg.logLevel
+                  config.services.virshle.logLevel
                 };
             in {
               Type = "oneshot";
@@ -148,8 +158,9 @@
               Environment = [
                 # "PATH=${config.security.wrapperDir}:/run/current-system/sw/bin"
                 "PATH=/run/current-system/sw/bin"
+
                 # If you want "~" to expend as another user's home.
-                "HOME=${config.users.users.${cfg.user}.home}"
+                # "HOME=${config.users.users.${cfg.user}.home}"
               ];
               ExecStart = let
                 name = "virshle-refresh-network";
@@ -193,7 +204,7 @@
                   "debug" = "-vvv";
                   "trace" = "-vvvv";
                 }.${
-                  cfg.logLevel
+                  config.services.virshle.logLevel
                 };
             in {
               Type = "simple";
@@ -203,7 +214,7 @@
                 # "PATH=${config.security.wrapperDir}:/run/current-system/sw/bin"
                 "PATH=/run/current-system/sw/bin"
                 # If you want "~" to expend as another user's home.
-                "HOME=${config.users.users.${cfg.user}.home}"
+                # "HOME=${config.users.users.${cfg.user}.home}"
               ];
               ExecStartPre = [
                 "-${package}/bin/virshle node init --all ${verbosity}"
