@@ -4,6 +4,18 @@
   self,
   ...
 }: {
+  flake-file.inputs = {
+    pipelight.url = "github:pipelight/pipelight";
+    disko = {
+      url = "github:nix-community/disko/latest";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # nixos-generators = {
+    #   url = "github:nix-community/nixos-generators";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
+  };
+
   flake.nixosModules."vm" = {modulesPath, ...}: {
     imports = [
       (modulesPath + "/profiles/qemu-guest.nix")
