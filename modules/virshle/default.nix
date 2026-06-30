@@ -17,240 +17,238 @@
       pkgs,
       ...
     }: {
-      nixos = {...}: {
-        ###################################
-        ## Options definition
-        options.services."virshle" = with lib; {
-          enable = mkEnableOption "Enable virshle.";
-          logLevel = mkOption {
-            default = "info";
-            type = types.enum ["error" "warn" "info" "debug" "trace"];
-          };
-
-          # Use kea-dhcp to provide network connectivity to VMs.
-          dhcp = {
-            # Create a default configuration for kea-dhcp.
-            defaultConfig = mkEnableOption "Enable kea dhcp with custom configuration for ${moduleName}.";
-          };
-
-          # Virshle runs better as root.
-          # This options sets the user environment and permissions.
-          user = mkOption {
-            default = "root";
-            type = types.str;
-          };
-
-          # Wether to manage host network interface.
-          manageNetwork.enable = mkEnableOption "Configure host network to give VM network access";
+      ###################################
+      ## Options definition
+      options.services."virshle" = with lib; {
+        enable = mkEnableOption "Enable virshle.";
+        logLevel = mkOption {
+          default = "info";
+          type = types.enum ["error" "warn" "info" "debug" "trace"];
         };
-        config = with lib; let
-          inherit (pkgs.stdenv.hostPlatform) system;
-          package = self.packages.${system}.default;
 
-          virshleProxyCommand = pkgs.writeShellScriptBin "virshleProxyCommand" ''
-            h=$1 #hostname
-            p=$2 #port
-            r=$3 #remote user
-            fn() {
-              vm_name=$(${pkgs.coreutils}/bin/echo $h | ${pkgs.gnused}/bin/sed -e "s/^vm\///");
-              vsock_path=$(${package}/bin/virshle vm get-vsock-path --name $vm_name);
-              ${pkgs.systemd}/lib/systemd/systemd-ssh-proxy vsock-mux$vsock_path $p
+        # Use kea-dhcp to provide network connectivity to VMs.
+        dhcp = {
+          # Create a default configuration for kea-dhcp.
+          defaultConfig = mkEnableOption "Enable kea dhcp with custom configuration for ${moduleName}.";
+        };
+
+        # Virshle runs better as root.
+        # This options sets the user environment and permissions.
+        user = mkOption {
+          default = "root";
+          type = types.str;
+        };
+
+        # Wether to manage host network interface.
+        manageNetwork.enable = mkEnableOption "Configure host network to give VM network access";
+      };
+      config = with lib; let
+        inherit (pkgs.stdenv.hostPlatform) system;
+        package = self.packages.${system}.default;
+
+        virshleProxyCommand = pkgs.writeShellScriptBin "virshleProxyCommand" ''
+          h=$1 #hostname
+          p=$2 #port
+          r=$3 #remote user
+          fn() {
+            vm_name=$(${pkgs.coreutils}/bin/echo $h | ${pkgs.gnused}/bin/sed -e "s/^vm\///");
+            vsock_path=$(${package}/bin/virshle vm get-vsock-path --name $vm_name);
+            ${pkgs.systemd}/lib/systemd/systemd-ssh-proxy vsock-mux$vsock_path $p
+          }
+          fn
+        '';
+      in
+        mkIf config.services."virshle".enable
+        {
+          ## Working dir
+          # Set working directories in your own configuration,
+          # outside of this module.
+          #
+          # Example:
+          #
+          # ```nix
+          # systemd.tmpfiles.rules = let
+          #   group = "users"; # "wheel" | "root"
+          # in
+          #   lib.mkDefault [
+          #     "Z '/var/lib/virshle' 2774 ${cfg.user} ${group} - -"
+          #     "d '/var/lib/virshle' 2774 ${cfg.user} ${group} - -"
+          #     "Z '/var/lib/virshle/cache' 2774 ${cfg.user} ${group} - -"
+          #     "d '/var/lib/virshle/cache' 2774 ${cfg.user} ${group} - -"
+          #   ];
+          # ```
+
+          # Set user as a sudoer.
+          # Virshle needs it to mount and unmount storage devices.
+          security.sudo.extraRules = [
+            {
+              users = [cfg.user];
+              commands = [
+                {
+                  command = "/run/wrappers/bin/mount";
+                  options = ["NOPASSWD"];
+                }
+                {
+                  command = "/run/wrappers/bin/umount";
+                  options = ["NOPASSWD"];
+                }
+              ];
             }
-            fn
-          '';
-        in
-          mkIf config.services."virshle".enable
-          {
-            ## Working dir
-            # Set working directories in your own configuration,
-            # outside of this module.
-            #
-            # Example:
-            #
-            # ```nix
-            # systemd.tmpfiles.rules = let
-            #   group = "users"; # "wheel" | "root"
-            # in
-            #   lib.mkDefault [
-            #     "Z '/var/lib/virshle' 2774 ${cfg.user} ${group} - -"
-            #     "d '/var/lib/virshle' 2774 ${cfg.user} ${group} - -"
-            #     "Z '/var/lib/virshle/cache' 2774 ${cfg.user} ${group} - -"
-            #     "d '/var/lib/virshle/cache' 2774 ${cfg.user} ${group} - -"
-            #   ];
-            # ```
+          ];
+          # Give the binary some capabilities.
+          # Virshle needs it to create network devices.
+          security.wrappers.virshle = {
+            source = "${package}/bin/virshle";
+            owner = cfg.user;
+            group = "root";
+            # setuid = true;
+            # setgid = true;
 
-            # Set user as a sudoer.
-            # Virshle needs it to mount and unmount storage devices.
-            security.sudo.extraRules = [
-              {
-                users = [cfg.user];
-                commands = [
-                  {
-                    command = "/run/wrappers/bin/mount";
-                    options = ["NOPASSWD"];
-                  }
-                  {
-                    command = "/run/wrappers/bin/umount";
-                    options = ["NOPASSWD"];
-                  }
-                ];
-              }
+            ## DO NOT WORK: Add mounting capabilities.
+            ## But can't work unless rust native mounting lib. (sys_mount crate is only FFI bindings)
+            # capabilities = "cap_net_admin,cap_sys_admin+eip";
+            capabilities = "cap_net_admin+eip";
+            permissions = "u+rx,g+rx,o+rx";
+          };
+
+          ## Systemd unit file
+          # Auto restart VM on network setup.
+          #
+          # Why is this needed?
+          # Nixos will destroy and rebuild the previous network on some generation switches,
+          # when the network configuration is modified or only touched,
+          # thus destroying vm tap interfaces and ovs interfaces.
+          # The Workaround:
+          # We need to restart the running VMs to generate and bind them to fresh working network interface.
+          systemd.services.virshle-autorestart = {
+            enable = true;
+            description = "Virshle - Auto restart running VMs.";
+            documentation = [
+              "https://github.com/pipelight/virshle"
             ];
-            # Give the binary some capabilities.
-            # Virshle needs it to create network devices.
-            security.wrappers.virshle = {
-              source = "${package}/bin/virshle";
-              owner = cfg.user;
-              group = "root";
-              # setuid = true;
-              # setgid = true;
-
-              ## DO NOT WORK: Add mounting capabilities.
-              ## But can't work unless rust native mounting lib. (sys_mount crate is only FFI bindings)
-              # capabilities = "cap_net_admin,cap_sys_admin+eip";
-              capabilities = "cap_net_admin+eip";
-              permissions = "u+rx,g+rx,o+rx";
-            };
-
-            ## Systemd unit file
-            # Auto restart VM on network setup.
-            #
-            # Why is this needed?
-            # Nixos will destroy and rebuild the previous network on some generation switches,
-            # when the network configuration is modified or only touched,
-            # thus destroying vm tap interfaces and ovs interfaces.
-            # The Workaround:
-            # We need to restart the running VMs to generate and bind them to fresh working network interface.
-            systemd.services.virshle-autorestart = {
-              enable = true;
-              description = "Virshle - Auto restart running VMs.";
-              documentation = [
-                "https://github.com/pipelight/virshle"
-              ];
-              after = [
-                "virshle.service"
-              ];
-              wantedBy = ["network-setup.service"];
-              serviceConfig = let
-                verbosity =
-                  {
-                    "error" = "";
-                    "warn" = "-v";
-                    "info" = "-vv";
-                    "debug" = "-vvv";
-                    "trace" = "-vvvv";
-                  }.${
-                    cfg.logLevel
-                  };
-              in {
-                Type = "oneshot";
-                User = "root";
-                Group = "wheel";
-                Environment = [
-                  # "PATH=${config.security.wrapperDir}:/run/current-system/sw/bin"
-                  "PATH=/run/current-system/sw/bin"
-                  # If you want "~" to expend as another user's home.
-                  "HOME=${config.users.users.${cfg.user}.home}"
-                ];
-                ExecStart = let
-                  name = "virshle-refresh-network";
-                  text = ''
-                    set +e # Do not exit if a command fails
-                    echo "Restarting running VMs..."
-                    ${package}/bin/virshle vm ensure --net --state running ${verbosity}
-                    exit 0
-                  '';
-                  script = pkgs.writeShellScriptBin name text;
-                  ## Move multiline script to seperate file
-                in "${script}/bin/${name}";
-              };
-            };
-
-            ## Systemd unit file
-            systemd.services.virshle = {
-              enable = true;
-              description = "Virshle (type 2 hypervisor) - Node daemon ";
-              documentation = [
-                "https://github.com/pipelight/virshle"
-              ];
-              after = [
-                "network.target"
-                "socket.target"
-                "ovs-vswitchd.service"
-                "ovsdb.service"
-                # Dhcp
-                "kea-ctrl-agent.service"
-                "kea-dhcpv4-server.service"
-                "kea-dhcpv6-server.service"
-              ];
-              wantedBy = ["multi-user.target"];
-
-              serviceConfig = let
-                verbosity =
-                  {
-                    "error" = "";
-                    "warn" = "-v";
-                    "info" = "-vv";
-                    "debug" = "-vvv";
-                    "trace" = "-vvvv";
-                  }.${
-                    cfg.logLevel
-                  };
-              in {
-                Type = "simple";
-                User = "root";
-                Group = "wheel";
-                Environment = [
-                  # "PATH=${config.security.wrapperDir}:/run/current-system/sw/bin"
-                  "PATH=/run/current-system/sw/bin"
-                  # If you want "~" to expend as another user's home.
-                  "HOME=${config.users.users.${cfg.user}.home}"
-                ];
-                ExecStartPre = [
-                  "-${package}/bin/virshle node init --all ${verbosity}"
-                ];
-                ExecStart = "${package}/bin/virshle node serve ${verbosity}";
-
-                WorkingDirectory = "/var/lib/virshle";
-
-                StandardInput = "null";
-                StandardOutput = "journal+console";
-                StandardError = "journal+console";
-
-                # Ensure orphans are not killed
-                KillMode = "process";
-
-                AmbientCapabilities = [
-                  "CAP_SYS_ADMIN"
-                  "CAP_NET_ADMIN"
-
-                  "CAP_NET_RAW"
-                  "CAP_NET_BIND_SERVICE"
-                ];
-              };
-            };
-
-            environment.systemPackages = [
-              # Network manager
-              package
-              virshleProxyCommand
+            after = [
+              "virshle.service"
             ];
-
-            programs.ssh = {
-              # Enable ssh-vsock communication on host side.
-              extraConfig = lib.mkAfter ''
-                ## Virshle special command
-                Host vm/*
-                  ProxyCommand ${virshleProxyCommand}/bin/virshleProxyCommand %h %p
-                  ProxyUseFdpass yes
-                  CheckHostIP no
-                  # Disable all kinds of host identity checks, since these addresses are generally ephemeral.
-                  StrictHostKeyChecking no
-                  UserKnownHostsFile /dev/null
-              '';
+            wantedBy = ["network-setup.service"];
+            serviceConfig = let
+              verbosity =
+                {
+                  "error" = "";
+                  "warn" = "-v";
+                  "info" = "-vv";
+                  "debug" = "-vvv";
+                  "trace" = "-vvvv";
+                }.${
+                  cfg.logLevel
+                };
+            in {
+              Type = "oneshot";
+              User = "root";
+              Group = "wheel";
+              Environment = [
+                # "PATH=${config.security.wrapperDir}:/run/current-system/sw/bin"
+                "PATH=/run/current-system/sw/bin"
+                # If you want "~" to expend as another user's home.
+                "HOME=${config.users.users.${cfg.user}.home}"
+              ];
+              ExecStart = let
+                name = "virshle-refresh-network";
+                text = ''
+                  set +e # Do not exit if a command fails
+                  echo "Restarting running VMs..."
+                  ${package}/bin/virshle vm ensure --net --state running ${verbosity}
+                  exit 0
+                '';
+                script = pkgs.writeShellScriptBin name text;
+                ## Move multiline script to seperate file
+              in "${script}/bin/${name}";
             };
           };
-      };
+
+          ## Systemd unit file
+          systemd.services.virshle = {
+            enable = true;
+            description = "Virshle (type 2 hypervisor) - Node daemon ";
+            documentation = [
+              "https://github.com/pipelight/virshle"
+            ];
+            after = [
+              "network.target"
+              "socket.target"
+              "ovs-vswitchd.service"
+              "ovsdb.service"
+              # Dhcp
+              "kea-ctrl-agent.service"
+              "kea-dhcpv4-server.service"
+              "kea-dhcpv6-server.service"
+            ];
+            wantedBy = ["multi-user.target"];
+
+            serviceConfig = let
+              verbosity =
+                {
+                  "error" = "";
+                  "warn" = "-v";
+                  "info" = "-vv";
+                  "debug" = "-vvv";
+                  "trace" = "-vvvv";
+                }.${
+                  cfg.logLevel
+                };
+            in {
+              Type = "simple";
+              User = "root";
+              Group = "wheel";
+              Environment = [
+                # "PATH=${config.security.wrapperDir}:/run/current-system/sw/bin"
+                "PATH=/run/current-system/sw/bin"
+                # If you want "~" to expend as another user's home.
+                "HOME=${config.users.users.${cfg.user}.home}"
+              ];
+              ExecStartPre = [
+                "-${package}/bin/virshle node init --all ${verbosity}"
+              ];
+              ExecStart = "${package}/bin/virshle node serve ${verbosity}";
+
+              WorkingDirectory = "/var/lib/virshle";
+
+              StandardInput = "null";
+              StandardOutput = "journal+console";
+              StandardError = "journal+console";
+
+              # Ensure orphans are not killed
+              KillMode = "process";
+
+              AmbientCapabilities = [
+                "CAP_SYS_ADMIN"
+                "CAP_NET_ADMIN"
+
+                "CAP_NET_RAW"
+                "CAP_NET_BIND_SERVICE"
+              ];
+            };
+          };
+
+          environment.systemPackages = [
+            # Network manager
+            package
+            virshleProxyCommand
+          ];
+
+          programs.ssh = {
+            # Enable ssh-vsock communication on host side.
+            extraConfig = lib.mkAfter ''
+              ## Virshle special command
+              Host vm/*
+                ProxyCommand ${virshleProxyCommand}/bin/virshleProxyCommand %h %p
+                ProxyUseFdpass yes
+                CheckHostIP no
+                # Disable all kinds of host identity checks, since these addresses are generally ephemeral.
+                StrictHostKeyChecking no
+                UserKnownHostsFile /dev/null
+            '';
+          };
+        };
     };
   };
 }
