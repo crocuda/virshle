@@ -1,6 +1,7 @@
 {
   inputs,
   den,
+  self,
   ...
 }: {
   flake.nixosModules."vm" = {modulesPath, ...}: {
