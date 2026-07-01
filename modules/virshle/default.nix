@@ -2,11 +2,13 @@
   self,
   den,
   virshle,
+  lib,
   ...
 }: {
-  virshle.aspects = rec {
-    default = virshle;
-    virshle.nixos = self.nixosModules.default;
+  flake-file.inputs = {
+    ###################################
+    ## Dendritic
+    den.url = "github:denful/den";
   };
 
   flake.nixosModules = rec {
