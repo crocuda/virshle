@@ -4,13 +4,9 @@
   virshle,
   ...
 }: {
-  flake.flakeModules = {
-    default = {
-      includes = [virshle.aspects.default];
-    };
-  };
-  virshle.aspects.default = {
-    nixos = self.nixosModules.default;
+  virshle.aspects = rec {
+    default = virshle;
+    virshle.nixos = self.nixosModules.default;
   };
 
   flake.nixosModules = rec {

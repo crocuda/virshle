@@ -16,6 +16,8 @@
     # };
   };
 
+  virshle.aspects.vm.nixos = self.nixosModules.vm;
+
   flake.nixosModules."vm" = {modulesPath, ...}: {
     imports = [
       (modulesPath + "/profiles/qemu-guest.nix")
@@ -23,13 +25,5 @@
       inputs.disko.nixosModules.disko
       ./_base
     ];
-  };
-
-  virshle.vm = {
-    nixos = {...}: {
-      imports = [
-        self.nixosModules."vm"
-      ];
-    };
   };
 }
