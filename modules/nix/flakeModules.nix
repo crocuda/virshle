@@ -22,14 +22,7 @@
       default = virshle;
       virshle = {
         imports =
-          [
-            ../package.nix
-            ../shell.nix
-            ../dendritic.nix
-            ../defaults.nix
-            ../namespaces.nix
-          ]
-          ++ builtins.filter (p:
+          builtins.filter (p:
             lib.hasSuffix ".nix" p && !lib.hasInfix "/_" p) (
             lib.filesystem.listFilesRecursive ../nix
           )
@@ -40,14 +33,7 @@
       };
       vm = {...}: {
         imports =
-          [
-            ../package.nix
-            ../shell.nix
-            ../dendritic.nix
-            ../defaults.nix
-            ../namespaces.nix
-          ]
-          ++ builtins.filter (p:
+          builtins.filter (p:
             lib.hasSuffix ".nix" p && !lib.hasInfix "/_" p) (
             lib.filesystem.listFilesRecursive ../nix
           )

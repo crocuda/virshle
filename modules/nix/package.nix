@@ -21,10 +21,10 @@
       default = virshle;
       virshle = pkgs.rustPlatform.buildRustPackage rec {
         pname = "virshle";
-        version = (builtins.fromTOML (lib.readFile ../${pname}/Cargo.toml)).package.version;
-        src = ../.;
+        version = (builtins.fromTOML (lib.readFile ../../${pname}/Cargo.toml)).package.version;
+        src = ../../.;
         cargoLock = {
-          lockFile = ../Cargo.lock;
+          lockFile = ../../Cargo.lock;
           outputHashes = {
             # "dummy-0.14.0" = lib.fakeHash;
 
@@ -51,7 +51,7 @@
           openssl
           pkg-config
 
-          (rust-bin.fromRustupToolchainFile ../rust-toolchain.toml)
+          (rust-bin.fromRustupToolchainFile ../../rust-toolchain.toml)
         ];
 
         LIBCLANG_PATH = lib.makeLibraryPath [pkgs.llvmPackages.libclang.lib];
