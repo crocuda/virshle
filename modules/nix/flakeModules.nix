@@ -18,10 +18,20 @@
     ## Works
     # Taken from denful/den source code at "nix/flakeModule.nix".
     flakeModule = flakeModules.default;
-    flakeModules.default = {...}: {
-      imports = builtins.filter (p: lib.hasSuffix ".nix" p && !lib.hasInfix "/_" p) (
-        lib.filesystem.listFilesRecursive ../../modules
-      );
+    flakeModules = rec {
+      default = virshle;
+      virshle = {...}: {
+        imports = builtins.filter (p: lib.hasSuffix ".nix" p && !lib.hasInfix "/_" p) (
+          lib.filesystem.listFilesRecursive ../virshle
+          ./dendritic.nix
+          ./namespaces.nix
+        );
+      };
+      vm = {...}: {
+        imports = builtins.filter (p: lib.hasSuffix ".nix" p && !lib.hasInfix "/_" p) (
+          lib.filesystem.listFilesRecursive ../vm
+        );
+      };
     };
   };
 }

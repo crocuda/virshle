@@ -23,7 +23,7 @@
       (modulesPath + "/profiles/qemu-guest.nix")
       inputs.pipelight.nixosModules.pipelight-init
       inputs.disko.nixosModules.disko
-      ./_base
+      # ./_base
     ];
   };
 }
