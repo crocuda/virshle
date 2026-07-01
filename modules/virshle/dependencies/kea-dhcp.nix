@@ -12,7 +12,7 @@
       keaDDnsPort = 53010;
       keaCtrlPort = 5547;
     in
-      mkIf config.serivces."virshle".dhcp.defaultConfig {
+      mkIf config.services."virshle".dhcp.defaultConfig {
         # OpenVSwitch
         ## DhcpV6
         environment.systemPackages = with pkgs; [

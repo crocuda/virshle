@@ -5,7 +5,7 @@
     pkgs,
     ...
   }: {
-    config = lib.mkIf config.serivces."virshle".enable {
+    config = lib.mkIf config.services."virshle".enable {
       # OpenVSwitch
       virtualisation.vswitch = {
         package = pkgs.openvswitch;

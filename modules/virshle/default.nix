@@ -1,14 +1,17 @@
-{
-  self,
-  den,
-  virshle,
-  lib,
-  ...
-}: {
+{self, ...}: {
   flake-file.inputs = {
-    ###################################
-    ## Dendritic
-    den.url = "github:denful/den";
+    # den.url = "github:denful/den";
+  };
+
+  virshle.aspects = rec {
+    default = virshle;
+    virshle = {
+      nixos = {...}: {
+        imports = [
+          self.nixosModules.virshle
+        ];
+      };
+    };
   };
 
   flake.nixosModules = rec {
@@ -47,6 +50,7 @@
       config = with lib; let
         inherit (pkgs.stdenv.hostPlatform) system;
         package = self.packages.${system}.default;
+        # package = self'.packages.default;
 
         virshleProxyCommand = pkgs.writeShellScriptBin "virshleProxyCommand" ''
           h=$1 #hostname

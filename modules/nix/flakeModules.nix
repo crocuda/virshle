@@ -23,7 +23,10 @@
       virshle = {
         imports =
           [
+            ../package.nix
+            ../shell.nix
             ../dendritic.nix
+            ../defaults.nix
             ../namespaces.nix
           ]
           ++ builtins.filter (p:
@@ -38,7 +41,10 @@
       vm = {...}: {
         imports =
           [
+            ../package.nix
+            ../shell.nix
             ../dendritic.nix
+            ../defaults.nix
             ../namespaces.nix
           ]
           ++ builtins.filter (p:
