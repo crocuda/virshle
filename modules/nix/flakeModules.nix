@@ -20,26 +20,34 @@
     flakeModule = flakeModules.default;
     flakeModules = rec {
       default = virshle;
-      virshle = {...}: {
+      virshle = {
         imports =
-          builtins.filter (p:
-            lib.hasSuffix ".nix" p && !lib.hasInfix "/_" p) (
-            lib.filesystem.listFilesRecursive ../virshle
-          )
+          [
+            ../dendritic.nix
+            ../namespaces.nix
+          ]
           ++ builtins.filter (p:
             lib.hasSuffix ".nix" p && !lib.hasInfix "/_" p) (
             lib.filesystem.listFilesRecursive ../nix
+          )
+          ++ builtins.filter (p:
+            lib.hasSuffix ".nix" p && !lib.hasInfix "/_" p) (
+            lib.filesystem.listFilesRecursive ../virshle
           );
       };
       vm = {...}: {
         imports =
-          builtins.filter (p:
-            lib.hasSuffix ".nix" p && !lib.hasInfix "/_" p) (
-            lib.filesystem.listFilesRecursive ../vm
-          )
+          [
+            ../dendritic.nix
+            ../namespaces.nix
+          ]
           ++ builtins.filter (p:
             lib.hasSuffix ".nix" p && !lib.hasInfix "/_" p) (
             lib.filesystem.listFilesRecursive ../nix
+          )
+          ++ builtins.filter (p:
+            lib.hasSuffix ".nix" p && !lib.hasInfix "/_" p) (
+            lib.filesystem.listFilesRecursive ../vm
           );
       };
     };

@@ -23,8 +23,8 @@
       default = pkgs.lib.nixosSystem {
         specialArgs = {inherit inputs;};
         modules = [
-          # ../commons/configuration.nix
-          # ../commons/hardware-configuration.nix
+          ../commons/configuration.nix
+          ../commons/hardware-configuration.nix
 
           inputs.virshle.nixosModules.default
 
