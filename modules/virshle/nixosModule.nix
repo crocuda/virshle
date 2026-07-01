@@ -1,76 +1,9 @@
 {
   self,
   den,
+  virshle,
   ...
 }: {
-  flake.flakeModules = rec {
-    default = virshle;
-    "virshle" = {
-      includes = [den.policies.to-host];
-      policies.to-host = {user, ...}: {
-        nixos = {pkgs, ...}: let
-          inherit (pkgs.stdenv.hostPlatform) system;
-          package = self.packages.${system}.default;
-        in {
-          ## Working dir
-          # Set working directories in your own configuration,
-          # outside of this module.
-          #
-          # Example:
-          #
-          # ```nix
-          # systemd.tmpfiles.rules = let
-          #   group = "users"; # "wheel" | "root"
-          # in
-          #   lib.mkDefault [
-          #     "Z '/var/lib/virshle' 2774 ${cfg.user} ${group} - -"
-          #     "d '/var/lib/virshle' 2774 ${cfg.user} ${group} - -"
-          #     "Z '/var/lib/virshle/cache' 2774 ${cfg.user} ${group} - -"
-          #     "d '/var/lib/virshle/cache' 2774 ${cfg.user} ${group} - -"
-          #   ];
-          # ```
-
-          # Set user as a sudoer.
-          # Virshle needs it to mount and unmount storage devices.
-          security.sudo.extraRules = [
-            {
-              users = [user];
-              commands = [
-                {
-                  command = "/run/wrappers/bin/mount";
-                  options = ["NOPASSWD"];
-                }
-                {
-                  command = "/run/wrappers/bin/umount";
-                  options = ["NOPASSWD"];
-                }
-              ];
-            }
-          ];
-          # Give the binary some capabilities.
-          # Virshle needs it to create network devices.
-          security.wrappers.virshle = {
-            source = "${package}/bin/virshle";
-            owner = user;
-            group = "root";
-            # setuid = true;
-            # setgid = true;
-
-            ## DO NOT WORK: Add mounting capabilities.
-            ## But can't work unless rust native mounting lib. (sys_mount crate is only FFI bindings)
-            # capabilities = "cap_net_admin,cap_sys_admin+eip";
-            capabilities = "cap_net_admin+eip";
-            permissions = "u+rx,g+rx,o+rx";
-          };
-        };
-      };
-      nixos = {...}: {
-        imports = [
-          self.nixosModules.virshle
-        ];
-      };
-    };
-  };
   flake.nixosModules = rec {
     default = virshle;
     "virshle" = {
@@ -121,6 +54,55 @@
         '';
       in
         mkIf config.services."virshle".enable {
+          ## Working dir
+          # Set working directories in your own configuration,
+          # outside of this module.
+          #
+          # Example:
+          #
+          # ```nix
+          # systemd.tmpfiles.rules = let
+          #   group = "users"; # "wheel" | "root"
+          # in
+          #   lib.mkDefault [
+          #     "Z '/var/lib/virshle' 2774 ${cfg.user} ${group} - -"
+          #     "d '/var/lib/virshle' 2774 ${cfg.user} ${group} - -"
+          #     "Z '/var/lib/virshle/cache' 2774 ${cfg.user} ${group} - -"
+          #     "d '/var/lib/virshle/cache' 2774 ${cfg.user} ${group} - -"
+          #   ];
+          # ```
+
+          # Allow sudoers to mount and unmount drives.
+          # Virshle needs it to mount and unmount storage devices.
+          security.sudo.extraRules = [
+            {
+              commands = [
+                {
+                  command = "/run/wrappers/bin/mount";
+                  options = ["NOPASSWD"];
+                }
+                {
+                  command = "/run/wrappers/bin/umount";
+                  options = ["NOPASSWD"];
+                }
+              ];
+            }
+          ];
+          # Give the binary some capabilities.
+          # Virshle needs it to create network devices.
+          security.wrappers.virshle = {
+            source = "${package}/bin/virshle";
+            owner = "roo";
+            group = "wheel";
+            # setuid = true;
+            # setgid = true;
+
+            ## DO NOT WORK: Add mounting capabilities.
+            ## But can't work unless rust native mounting lib. (sys_mount crate is only FFI bindings)
+            # capabilities = "cap_net_admin,cap_sys_admin+eip";
+            capabilities = "cap_net_admin+eip";
+            permissions = "u+rx,g+rx,o+rx";
+          };
           ## Systemd unit file
           # Auto restart VM on network setup.
           #

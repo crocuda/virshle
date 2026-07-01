@@ -1,7 +1,5 @@
 {lib, ...}: {
   ##########################
-  ## Lix
-  # nix.package = pkgs.lixPackageSets.stable.lix;
   ## Nix
   # Enable Flakes
   nix.settings = {
