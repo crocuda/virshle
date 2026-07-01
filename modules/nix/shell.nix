@@ -8,7 +8,7 @@
     system,
     ...
   }: {
-    devShells.default = pkgs.mkShell {
+    devShells.default = lib.mkDefault (pkgs.mkShell {
       # _module.args = import inputs.nixpkgs {
       #   inherit system;
       #   overlays = [inputs.rust-overlay.overlays.default];
@@ -34,6 +34,6 @@
           }
       ]";
       LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
-    };
+    });
   };
 }
