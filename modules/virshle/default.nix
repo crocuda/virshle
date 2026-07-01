@@ -103,7 +103,7 @@
           # Virshle needs it to create network devices.
           security.wrappers.virshle = {
             source = "${package}/bin/virshle";
-            owner = "roo";
+            owner = "root";
             group = "wheel";
             # setuid = true;
             # setgid = true;
