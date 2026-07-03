@@ -1,7 +1,6 @@
 {
   inputs,
   self,
-  virshle,
   ...
 }: {
   flake-file.inputs = {
@@ -17,16 +16,24 @@
   };
 
   virshle.aspects.vm = {
-    nixos = self.nixosModules.vm;
+    nixos = {...}: {
+      imports = [
+        # self.nixosModules.vm
+      ];
+    };
   };
 
-  flake = {lib, ...}: {
+  flake = {
+    lib,
+    self,
+    ...
+  }: {
     nixosModules."vm" = {modulesPath, ...}: {
       imports = [
         (modulesPath + "/profiles/qemu-guest.nix")
         inputs.pipelight.nixosModules.pipelight-init
         inputs.disko.nixosModules.disko
-        ./_base
+        ./_nixos
       ];
     };
     nixosConfigurations = let
@@ -85,7 +92,7 @@
           size = "20G";
           swap_size = 1;
           imports = [
-            ../vm/_base/test.nix
+            ../_nixos/test.nix
           ];
         }
         {

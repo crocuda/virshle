@@ -142,7 +142,7 @@
                   "debug" = "-vvv";
                   "trace" = "-vvvv";
                 }.${
-                  config.services.virshle.logLevel
+                  config.services."virshle".logLevel
                 };
             in {
               Type = "oneshot";
@@ -197,7 +197,7 @@
                   "debug" = "-vvv";
                   "trace" = "-vvvv";
                 }.${
-                  config.services.virshle.logLevel
+                  config.services."virshle".logLevel
                 };
             in {
               Type = "simple";
