@@ -18,16 +18,12 @@
   virshle.aspects.vm = {
     nixos = {...}: {
       imports = [
-        # self.nixosModules.vm
+        self.nixosModules.vm
       ];
     };
   };
 
-  flake = {
-    lib,
-    self,
-    ...
-  }: {
+  flake = {lib, ...}: {
     nixosModules."vm" = {modulesPath, ...}: {
       imports = [
         (modulesPath + "/profiles/qemu-guest.nix")
@@ -92,7 +88,7 @@
           size = "20G";
           swap_size = 1;
           imports = [
-            ../_nixos/test.nix
+            ../_nixos/vm/test.nix
           ];
         }
         {
@@ -124,15 +120,15 @@
       # inherit (nixosConfiguration.config.nixpkgs.hostPlatform) system;
       hostConfig = nixosConfiguration.config;
     in {
-      name = "vm-${nixosConfigurationName}";
+      name = "disk-${nixosConfigurationName}";
       value = pkgs.writeShellApplication {
-        name = "vm-${nixosConfigurationName}";
+        name = "disk-${nixosConfigurationName}";
         text = ''
           ${hostConfig.system.build.vm}/bin/run-${hostConfig.networking.hostName}-vm "$@"
         '';
       };
     });
   in {
-    packages = mkDiskImages self.nixosConfigurations;
+    # packages = mkDiskImages self.nixosConfigurations;
   };
 }
