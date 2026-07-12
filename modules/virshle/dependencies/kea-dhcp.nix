@@ -25,6 +25,7 @@
         ];
         services.kea = {
           ctrl-agent = {
+            enable = true;
             settings = {
               http-port = keaCtrlPort;
               control-sockets = {
@@ -153,6 +154,7 @@
           };
 
           dhcp-ddns = {
+            enable = true;
             settings = {
               control-socket = {
                 socket-type = "unix";
