@@ -1,5 +1,5 @@
 {...}: {
-  flake.nixosModules."virshle" = {
+  flake.nixosModules."kea-dhcp" = {
     lib,
     config,
     pkgs,

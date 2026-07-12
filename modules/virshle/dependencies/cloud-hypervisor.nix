@@ -1,5 +1,5 @@
 {...}: {
-  flake.nixosModules."virshle" = {
+  flake.nixosModules."cloud-hypervisor" = {
     lib,
     config,
     pkgs,
@@ -25,7 +25,7 @@
 
       environment.systemPackages = with pkgs; [
         # VMMs
-        cloud-hypervisor #v0.50.2
+        cloud-hypervisor #v0.51.1
 
         # Efi related?
         # OVMF-cloud-hypervisor

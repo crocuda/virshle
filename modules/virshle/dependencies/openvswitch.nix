@@ -1,5 +1,5 @@
 {...}: {
-  flake.nixosModules."virshle" = {
+  flake.nixosModules."openvswitch" = {
     lib,
     config,
     pkgs,

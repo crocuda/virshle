@@ -22,6 +22,11 @@
       pkgs,
       ...
     }: {
+      imports = [
+        self.nixosModules.cloud-hypervisor
+        self.nixosModules.kea-dhcp
+        self.nixosModules.openvswitch
+      ];
       ###################################
       ## Options definition
       options.services."virshle" = with lib; {
